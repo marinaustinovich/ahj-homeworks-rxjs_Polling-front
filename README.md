@@ -1,8 +1,8 @@
+## Polling
+
 [![Build status](https://ci.appveyor.com/api/projects/status/st3co421buoack03/branch/main?svg=true)](https://ci.appveyor.com/project/marinaustinovich/ahj-homeworks-rxjs-polling-front/branch/main)
 
 deployment: https://marinaustinovich.github.io/ahj-homeworks-rxjs_Polling-front/
-
-## Polling
 
 ### Легенда
 
@@ -14,12 +14,12 @@ deployment: https://marinaustinovich.github.io/ahj-homeworks-rxjs_Polling-front/
 
 ![](./src/img/polling.png)
 
-
 Сообщения добавляются именно сверху, предыдущие не удаляются.
 
 Для получения данных через определённые промежутки используется оператор `interval`.
 
 Для запросов используется [AJAX](https://rxjs-dev.firebaseapp.com/api/ajax/ajax):
+
 ```javascript
 import { ajax } from 'rxjs/ajax';
 

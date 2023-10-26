@@ -1,7 +1,6 @@
 import Widget from "./Widget";
+const url = "https://polling-back.netlify.app/messages/unread";
+const container = document.getElementById("polling-container");
+const widget = new Widget(container, url);
 
-/* eslint-disable */
-console.log('it works!');
-
-new Widget(document.getElementById('polling-container'), 'https://polling-back.netlify.app/messages/unread');
-
+widget.init();
