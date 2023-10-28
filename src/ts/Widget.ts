@@ -1,9 +1,8 @@
-import { interval } from "rxjs";
-import { ajax } from "rxjs/ajax";
-import { switchMap } from "rxjs/operators";
-const dayjs = require("dayjs");
+import { Subscription } from "rxjs";
+import { DOMService } from "./DOMService";
+import { DataService } from "./DataService";
 
-interface MessageData {
+export interface MessageData {
   id: string;
   from: string;
   subject: string;
@@ -11,72 +10,68 @@ interface MessageData {
   received: number;
 }
 
+const UPDATE_INTERVAL = 5000;
+
 export default class Widget {
-  container: HTMLElement;
-  url: string;
-  messagesList: HTMLElement | null;
+  private domService: DOMService;
+  private dataService: DataService;
+  private container: HTMLElement;
+  private url: string;
+  private messagesList: HTMLElement | null;
+  private subscription: Subscription | null = null;
 
   constructor(container: HTMLElement | null, url: string) {
     if (!container) {
       throw new Error("Container element must not be null");
     }
 
+    this.subscription = null;
     this.container = container;
     this.url = url;
     this.messagesList = null;
+    this.domService = new DOMService();
+    this.dataService = new DataService(this.url);
   }
 
-  init() {
-    this.container.innerHTML = `
-      <h3>Incoming</h3>
-      <div class="messages"></div>
-    `;
-    this.messagesList = this.container.querySelector(".messages");
+  init(): void {
+    this.createUI();
     this.updateList();
   }
 
-  updateList() {
-    Widget.getDataWithInterval(this.url, 5000).subscribe({
-      next: ({
-        timestamp,
-        messages,
-      }: {
-        timestamp: number;
-        messages: MessageData[];
-      }) => {
-        messages.forEach((message) => this.addMessage(message, timestamp));
-      },
-      error: (error) => console.error("Error:", error),
-    });
+  createUI(): void {
+    const header = this.domService.createHeader("Incoming");
+    const messagesDiv = this.domService.createMessagesContainer();
+
+    this.container.appendChild(header);
+    this.container.appendChild(messagesDiv);
+    this.messagesList = messagesDiv;
+  }
+
+  updateList(): void {
+    this.subscription = this.dataService
+      .getDataWithInterval(UPDATE_INTERVAL)
+      .subscribe({
+        next: ({
+          timestamp,
+          messages,
+        }: {
+          timestamp: number;
+          messages: MessageData[];
+        }) => {
+          messages.forEach((message) => this.addMessage(message, timestamp));
+        },
+        error: (error) => console.error("Error:", error),
+      });
   }
 
   addMessage(data: MessageData, time: number) {
-    const message = document.createElement("div");
-    message.classList.add("message");
-    message.innerHTML = `
-      <span class="author">${data.from}</span>
-      <span class="subject">${Widget.truncateSubject(data.subject, 15)}</span>
-      <span class="timestamp">${Widget.formatTime(time)}</span>
-    `;
-
-    this.messagesList?.prepend(message);
+    const message = this.domService.createMessage(data, time);
+    if (this.messagesList) {
+      this.domService.prependToContainer(this.messagesList, message);
+    }
   }
 
-  static getDataWithInterval(url: string, intervalTime: number) {
-    return interval(intervalTime).pipe(
-      switchMap(() =>
-        ajax.getJSON<{ timestamp: number; messages: MessageData[] }>(url)
-      )
-    );
-  }
-
-  static formatTime(timestamp: number) {
-    return dayjs(timestamp).format("HH:mm DD.MM.YYYY");
-  }
-
-  static truncateSubject(subject: string, maxLength: number): string {
-    return subject.length > maxLength
-      ? `${subject.slice(0, maxLength - 1)}…`
-      : subject;
+  destroy(): void {
+    this.subscription?.unsubscribe();
   }
 }
